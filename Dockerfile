@@ -1,6 +1,6 @@
 FROM greyltc/archlinux-aur
 
-ENV TZ=Europe/Barcelona \
+ENV TZ=Europe/Madrid \
     DISPLAY=:0 \
     UV_LINK_MODE=copy \
     PYTHONUNBUFFERED=1 \
@@ -26,8 +26,7 @@ RUN pacman -Syu --noconfirm --needed \
     && pacman -Scc --noconfirm
 
 COPY scripts/ /scripts/
-RUN chmod +x /scripts/*.sh \
-    && /scripts/init.sh
+RUN chmod +x /scripts/*.sh && /scripts/init.sh
 
 WORKDIR /app
 
