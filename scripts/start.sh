@@ -128,4 +128,5 @@ uv run playwright install chromium
 echo "=== Starting AutoApply ==="
 echo "DISPLAY=$DISPLAY"
 
-uv run autoapply start --skip-docker
+read -r -a AUTOAPPLY_START_ARGS_ARRAY <<< "${AUTOAPPLY_START_ARGS:---skip-docker}"
+uv run autoapply start "${AUTOAPPLY_START_ARGS_ARRAY[@]}"
