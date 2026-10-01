@@ -19,12 +19,21 @@ from docx.oxml import OxmlElement
 from docx.text.paragraph import Paragraph
 
 from src.documents._shared import (
-    clean_cover_letter_location as _clean_cover_letter_location,
     clean_field as _clean_field,
+)
+from src.documents._shared import (
     cover_letter_contact_lines as _cover_letter_contact_lines,
+)
+from src.documents._shared import (
     cover_letter_date as _cover_letter_date,
+)
+from src.documents._shared import (
     cover_letter_recipient_lines as _cover_letter_recipient_lines,
+)
+from src.documents._shared import (
     normalise_divider_set as _normalise_divider_set,
+)
+from src.documents._shared import (
     section_wants_divider as _section_wants_divider,
 )
 from src.documents.templates import TemplateManifest, default_manifest
@@ -181,18 +190,12 @@ def _render_resume_markers(
 
     section_markers = {
         "header": manifest.blocks.get("header", "{{resume.header}}"),
+        "summary": manifest.blocks.get("summary", "{{resume.summary}}"),
         "education": manifest.blocks.get("education", "{{resume.education}}"),
         "skills": manifest.blocks.get("skills", "{{resume.skills}}"),
         "experience": manifest.blocks.get("experience", "{{resume.experience}}"),
         "projects": manifest.blocks.get("projects", "{{resume.projects}}"),
     }
-    # Any legacy ``{{resume.summary}}`` marker in a user template is
-    # stripped so it cannot leak through as visible placeholder text.
-    legacy_summary_marker = manifest.blocks.get("summary", "{{resume.summary}}")
-    legacy_summary_para = _find_marker_paragraph(doc, legacy_summary_marker)
-    if legacy_summary_para is not None:
-        _remove_paragraph(legacy_summary_para)
-        rendered = True
     for section, marker in section_markers.items():
         marker_para = _find_marker_paragraph(doc, marker)
         if marker_para is None:
@@ -249,6 +252,8 @@ def _render_resume_sections(
 def _render_resume_section(section: str, sink, document, styles: dict[str, str]) -> None:
     if section == "header":
         _render_ir_header(sink, document.header, styles)
+    elif section == "summary":
+        _render_ir_summary(sink, getattr(document, "summary", ""), styles)
     elif section == "education":
         _render_ir_education(sink, document.education, styles)
     elif section == "skills":
@@ -479,14 +484,11 @@ def _cover_letter_template_variables(document) -> dict[str, str]:
 def _resolved_section_order(document) -> list[str]:
     # The caller's ``section_order`` is the source of truth. Only fall
     # back to the default when the caller did not provide an order.
-    # ``summary`` is filtered out unconditionally -- this system never
-    # renders a Summary section regardless of what callers / legacy
-    # manifests request.
-    default_order = ["header", "education", "skills", "experience", "projects"]
+    default_order = ["header", "summary", "education", "skills", "experience", "projects"]
     explicit = [
         section
         for section in document.section_order
-        if section in default_order and section != "summary"
+        if section in default_order
     ]
     return explicit or default_order
 
@@ -507,6 +509,14 @@ def _render_ir_header(doc: Document, identity: dict[str, Any], styles: dict[str,
     )
     if links:
         _add_styled_paragraph(doc, links, styles.get("contact"))
+
+
+def _render_ir_summary(doc: Document, summary: str, styles: dict[str, str]) -> None:
+    summary = str(summary or "").strip()
+    if not summary:
+        return
+    _add_section_heading(doc, "Summary", styles)
+    _add_styled_paragraph(doc, summary, styles.get("normal"))
 
 
 def _render_ir_education(doc: Document, education: list[dict], styles: dict[str, str]) -> None:

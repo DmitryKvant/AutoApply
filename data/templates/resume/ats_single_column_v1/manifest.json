@@ -11,7 +11,7 @@
   "description": "Two-page ATS-friendly resume with named Word styles and tab-stop dates.",
   "page": {
     "size": "letter",
-    "max_pages": 2
+    "max_pages": 3
   },
   "styles": {
     "name": "Resume.Name",

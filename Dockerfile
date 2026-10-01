@@ -23,6 +23,7 @@ RUN pacman -Syu --noconfirm --needed \
     ttf-dejavu \
     fontconfig \
     dbus \
+    libreoffice-fresh \
     && pacman -Scc --noconfirm
 
 COPY scripts/ /scripts/

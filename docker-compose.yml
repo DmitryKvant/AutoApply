@@ -35,19 +35,24 @@ services:
     image: autoapply-vnc:latest
     container_name: autoapply
     init: true
-    shm_size: "1gb"
     environment:
       VNC_PASSWD: "${VNC_PASSWD}"
       DISPLAY: ":0"
       DISPLAY_WIDTH: "1680"
       DISPLAY_HEIGHT: "1050"
       TZ: "Europe/Barcelona"
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
     volumes:
       - ./:/app
     restart: unless-stopped
-    mem_reservation: 500m
     network_mode: host
-    cpus: 0.8
+    shm_size: "512mb"
+    mem_limit: "1.5g"
+    mem_reservation: "600m"
+    cpus: "0.6"
     security_opt:
       - no-new-privileges:true
   postgres:

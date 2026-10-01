@@ -44,6 +44,11 @@ cleanup() {
 
 trap cleanup EXIT
 
+if ! pgrep -x Xvnc >/dev/null 2>&1; then
+    rm -f /tmp/.X0-lock
+    rm -f /tmp/.X11-unix/X0
+fi
+
 echo "=== Starting TigerVNC display $DISPLAY ==="
 
 Xvnc "$DISPLAY" \
