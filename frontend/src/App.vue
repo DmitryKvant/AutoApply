@@ -1,0 +1,206 @@
+<script setup>
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
+import { RouterLink, RouterView, useRoute } from "vue-router"
+import { ConfigProvider } from "reka-ui"
+import {
+  Briefcase,
+  ClipboardCheck,
+  FileText,
+  LayoutDashboard,
+  ListChecks,
+  Monitor,
+  Moon,
+  Send,
+  Settings as SettingsIcon,
+  Sun,
+  UserCircle,
+} from "lucide-vue-next"
+
+import { ensureLinkedInSessionLoaded } from "./lib/linkedin-session"
+
+const route = useRoute()
+const themeMenuRef = ref(null)
+const themePreference = ref("system")
+const systemPrefersDark = ref(false)
+const themeMenuOpen = ref(false)
+const THEME_STORAGE_KEY = "autoapply.theme"
+const logoUrl = "/logo.svg"
+
+const themeOptions = [
+  { value: "system", label: "Follow system", icon: Monitor },
+  { value: "light", label: "Light mode", icon: Sun },
+  { value: "dark", label: "Dark mode", icon: Moon },
+]
+
+let cleanupThemeListeners = () => {}
+
+const items = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/jobs", label: "Jobs", icon: Briefcase },
+  { to: "/materials", label: "Materials", icon: FileText },
+  { to: "/review", label: "Awaiting Review", icon: ClipboardCheck },
+  { to: "/tasks", label: "Plans", icon: ListChecks },
+  { to: "/applications", label: "Applications", icon: Send },
+  { to: "/profile", label: "Profile", icon: UserCircle },
+  { to: "/settings", label: "Settings", icon: SettingsIcon },
+]
+
+const resolvedTheme = computed(() => {
+  if (themePreference.value === "system") {
+    return systemPrefersDark.value ? "dark" : "light"
+  }
+  return themePreference.value
+})
+
+const themeButtonIcon = computed(() => {
+  if (themePreference.value === "system") {
+    return Monitor
+  }
+  return resolvedTheme.value === "dark" ? Moon : Sun
+})
+
+function isActive(item) {
+  if (item.to === "/") {
+    return route.path === "/"
+  }
+
+  return route.path === item.to || route.path.startsWith(`${item.to}/`)
+}
+
+function applyTheme() {
+  document.documentElement.dataset.theme = resolvedTheme.value
+  document.documentElement.style.colorScheme = resolvedTheme.value
+  // Tailwind dark: variants opt into the .dark class on <html>.
+  document.documentElement.classList.toggle("dark", resolvedTheme.value === "dark")
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, themePreference.value)
+  } catch {
+    // Ignore storage restrictions and fall back to in-memory theme state.
+  }
+}
+
+function selectTheme(value) {
+  themePreference.value = value
+  themeMenuOpen.value = false
+}
+
+function toggleThemeMenu() {
+  themeMenuOpen.value = !themeMenuOpen.value
+}
+
+function onDocumentClick(event) {
+  if (!themeMenuRef.value?.contains(event.target)) {
+    themeMenuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  let storedTheme = null
+  try {
+    storedTheme = localStorage.getItem(THEME_STORAGE_KEY)
+  } catch {
+    storedTheme = null
+  }
+  if (["system", "light", "dark"].includes(storedTheme)) {
+    themePreference.value = storedTheme
+  }
+
+  const media = window.matchMedia("(prefers-color-scheme: dark)")
+  systemPrefersDark.value = media.matches
+
+  const updateSystemTheme = (event) => {
+    systemPrefersDark.value = event.matches
+  }
+
+  if (media.addEventListener) {
+    media.addEventListener("change", updateSystemTheme)
+  } else {
+    media.addListener(updateSystemTheme)
+  }
+
+  const stopThemeWatch = watch([themePreference, resolvedTheme], applyTheme, { immediate: true })
+  document.addEventListener("click", onDocumentClick)
+  void ensureLinkedInSessionLoaded()
+
+  cleanupThemeListeners = () => {
+    stopThemeWatch()
+    document.removeEventListener("click", onDocumentClick)
+    if (media.removeEventListener) {
+      media.removeEventListener("change", updateSystemTheme)
+    } else {
+      media.removeListener(updateSystemTheme)
+    }
+  }
+})
+
+onBeforeUnmount(() => {
+  cleanupThemeListeners()
+})
+</script>
+
+<template>
+  <!--
+    `scrollBody: false` tells reka-ui's modal scroll lock NOT to add
+    padding/margin to <body> when a Select / Dialog / Popover opens.
+    Default behaviour assumes the scrollbar lives on <body>, so it adds
+    padding-right equal to the scrollbar width to "compensate" — but
+    we moved the scrollbar to <html> (see styles.css). That left
+    reka-ui shifting the body content by 15px even though the
+    scrollbar never disappeared.
+  -->
+  <ConfigProvider :scroll-body="false">
+  <div class="app-shell">
+    <aside class="dock" aria-label="Primary navigation">
+      <RouterLink
+        v-for="item in items"
+        :key="item.to"
+        :to="item.to"
+        class="dock-item"
+        :class="{ 'is-active': isActive(item) }"
+        :aria-label="item.label"
+      >
+        <component :is="item.icon" class="dock-icon" />
+      </RouterLink>
+
+      <div ref="themeMenuRef" class="dock-theme">
+        <button
+          class="dock-item dock-button"
+          :class="{ 'is-active': themeMenuOpen }"
+          type="button"
+          aria-label="Theme mode"
+          title="Theme mode"
+          @click.stop="toggleThemeMenu"
+        >
+          <component :is="themeButtonIcon" class="dock-icon" />
+        </button>
+
+        <div v-if="themeMenuOpen" class="dock-theme-menu">
+          <button
+            v-for="option in themeOptions"
+            :key="option.value"
+            class="dock-theme-item"
+            :class="{ 'is-active': themePreference === option.value }"
+            type="button"
+            :aria-label="option.label"
+            :title="option.label"
+            @click.stop="selectTheme(option.value)"
+          >
+            <component :is="option.icon" class="dock-icon" />
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="page-header">
+        <img class="page-logo" :src="logoUrl" alt="AutoApply logo" />
+        <div>
+          <h1 class="page-title">{{ route.meta.label }}</h1>
+        </div>
+      </header>
+
+      <RouterView />
+    </main>
+  </div>
+  </ConfigProvider>
+</template>

@@ -1,0 +1,90 @@
+{
+  "template_id": "ats_single_column_v1",
+  "document_type": "resume",
+  "template_format": "docx",
+  "renderer": "docx",
+  "supported_outputs": [
+    "docx",
+    "pdf"
+  ],
+  "name": "ATS Single Column",
+  "description": "Two-page ATS-friendly resume with named Word styles and tab-stop dates.",
+  "page": {
+    "size": "letter",
+    "max_pages": 2
+  },
+  "styles": {
+    "name": "Resume.Name",
+    "contact": "Resume.Contact",
+    "section_heading": "Resume.SectionHeading",
+    "item_title": "Resume.ItemTitle",
+    "item_subtitle": "Resume.ItemSubtitle",
+    "item_meta": "Resume.ItemMeta",
+    "normal": "Resume.Normal",
+    "bullet": "Resume.Bullet",
+    "skill_category": "Resume.SkillCategory",
+    "skill_line": "Resume.SkillLine"
+  },
+  "sections": {
+    "summary": {
+      "enabled": true,
+      "max_items": 1,
+      "max_bullets_per_item": null,
+      "max_words_per_bullet": null,
+      "max_lines": 5
+    },
+    "education": {
+      "enabled": true,
+      "max_items": 3,
+      "max_bullets_per_item": null,
+      "max_words_per_bullet": null,
+      "max_lines": null
+    },
+    "experience": {
+      "enabled": true,
+      "max_items": 10,
+      "max_bullets_per_item": 5,
+      "max_words_per_bullet": 32,
+      "max_lines": null
+    },
+    "projects": {
+      "enabled": false,
+      "max_items": 4,
+      "max_bullets_per_item": 4,
+      "max_words_per_bullet": 32,
+      "max_lines": null
+    },
+    "skills": {
+      "enabled": true,
+      "max_items": null,
+      "max_bullets_per_item": null,
+      "max_words_per_bullet": null,
+      "max_lines": 25
+    }
+  },
+  "section_order": [
+    "header",
+    "summary",
+    "projects",
+    "experience",
+    "education",
+    "skills"
+  ],
+  "capacity": {
+    "max_pages": 4,
+    "max_sections": 9,
+    "max_experience_items": 6,
+    "max_project_items": 4,
+    "max_bullets_total": 36,
+    "max_words_per_bullet": 32,
+    "max_skill_lines": 8
+  },
+  "blocks": {
+    "sections": "{{resume.sections}}"
+  },
+  "latex": null,
+  "style_overrides": {},
+  "target_pages": 2,
+  "filename_pattern": "company_role_date",
+  "filename_custom_label": ""
+}
