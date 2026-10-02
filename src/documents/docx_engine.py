@@ -187,7 +187,9 @@ def _render_resume_markers(
         _render_resume_sections(sink, document, styles, include_header=False)
         _remove_paragraph(marker_para)
         rendered = True
+        return rendered
 
+    rendered_sections: set[str] = set()
     section_markers = {
         "header": manifest.blocks.get("header", "{{resume.header}}"),
         "summary": manifest.blocks.get("summary", "{{resume.summary}}"),
@@ -203,7 +205,10 @@ def _render_resume_markers(
         sink = _DocxSink(doc, marker_para)
         _render_resume_section(section, sink, document, styles)
         _remove_paragraph(marker_para)
+        rendered_sections.add(section)
         rendered = True
+    if rendered:
+        _render_unplaced_custom_sections(_DocxSink(doc), document, styles, rendered_sections)
     return rendered
 
 
@@ -247,6 +252,38 @@ def _render_resume_sections(
         token = f"custom:{custom.title}"
         if _section_wants_divider(token, dividers_after):
             _add_horizontal_rule(sink)
+
+
+def _render_unplaced_custom_sections(
+    sink,
+    document,
+    styles: dict[str, str],
+    rendered_sections: set[str] | None = None,
+) -> None:
+    """Append custom sections that were not covered by explicit markers.
+
+    Template packages can use either one aggregate ``{{resume.sections}}``
+    block or individual section markers such as ``{{resume.skills}}``.
+    The aggregate path naturally renders custom sections through
+    ``_render_resume_sections``. The individual-marker path needs this
+    explicit catch-all, otherwise free-form profile sections like
+    Languages or Certifications silently disappear.
+    """
+    rendered_sections = rendered_sections or set()
+    rendered_custom_titles: set[str] = set()
+    for section in rendered_sections:
+        if section.startswith("custom:"):
+            rendered_custom_titles.add(section.split(":", 1)[1].strip().lower())
+        elif section in {"custom", "custom_sections"}:
+            for custom in getattr(document, "custom_sections", []) or []:
+                rendered_custom_titles.add(custom.title.strip().lower())
+
+    for custom in getattr(document, "custom_sections", []) or []:
+        title = custom.title.strip().lower()
+        if not title or title in rendered_custom_titles:
+            continue
+        _render_ir_custom_section(sink, custom, styles)
+        rendered_custom_titles.add(title)
 
 
 def _render_resume_section(section: str, sink, document, styles: dict[str, str]) -> None:

@@ -475,6 +475,79 @@ class TestDocxEngine:
         assert "AWARDS" in full_text
         assert "Dean's List" in full_text
 
+    def test_build_resume_with_individual_markers_renders_custom_sections(self, tmp_path):
+        """DOCX templates that place each canonical section with its
+        own marker still need a catch-all for free-form profile
+        sections such as Languages and Certifications."""
+        from src.documents.templates import default_manifest
+        from src.generation.ir import CustomSection, CustomSectionEntry
+
+        template_path = tmp_path / "template_individual_markers.docx"
+        doc = Document()
+        for marker in (
+            "{{resume.header}}",
+            "{{resume.summary}}",
+            "{{resume.education}}",
+            "{{resume.skills}}",
+            "{{resume.experience}}",
+            "{{resume.projects}}",
+        ):
+            doc.add_paragraph(marker)
+        doc.save(str(template_path))
+
+        output_path = tmp_path / "resume_individual_markers.docx"
+        manifest = default_manifest("resume").model_copy(
+            update={
+                "blocks": {
+                    "header": "{{resume.header}}",
+                    "summary": "{{resume.summary}}",
+                    "education": "{{resume.education}}",
+                    "skills": "{{resume.skills}}",
+                    "experience": "{{resume.experience}}",
+                    "projects": "{{resume.projects}}",
+                }
+            }
+        )
+        document = ResumeDocument(
+            target_role="SWE",
+            company="Acme",
+            header=SAMPLE_IDENTITY,
+            education=SAMPLE_EDUCATION,
+            skills=SAMPLE_SKILLS,
+            section_order=["header", "education", "skills"],
+            experiences=[],
+            projects=[],
+            custom_sections=[
+                CustomSection(
+                    title="Certifications & Courses",
+                    entries=[
+                        CustomSectionEntry(
+                            title="AWS Certified Developer",
+                            details="Amazon Web Services",
+                        )
+                    ],
+                ),
+                CustomSection(
+                    title="Languages",
+                    entries=[CustomSectionEntry(details="English, Spanish, Russian")],
+                ),
+            ],
+        )
+
+        result = build_resume_from_ir(
+            template_path,
+            document,
+            output_path,
+            manifest=manifest,
+        )
+
+        rendered = Document(str(result))
+        full_text = " ".join(p.text for p in rendered.paragraphs)
+        assert "Certifications & Courses" in full_text
+        assert "AWS Certified Developer" in full_text
+        assert "Languages" in full_text
+        assert "English, Spanish, Russian" in full_text
+
     def test_template_package_renderer_uses_named_styles(self, tmp_path):
         package = ensure_template_package("resume", template_root=tmp_path)
         output_path = tmp_path / "resume_named_styles.docx"
